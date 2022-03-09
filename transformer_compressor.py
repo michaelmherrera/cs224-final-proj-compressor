@@ -35,6 +35,7 @@ class TransformerCompressor:
     """
     # Encode
     tokenized_msgs = tokenized_msgs.to(device)
+    attentions = attentions.to(device)
     model = self.model
     with torch.no_grad():
       # In theory, I should be able to avoid the loop because the transformer
