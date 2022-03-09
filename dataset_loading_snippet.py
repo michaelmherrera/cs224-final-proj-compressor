@@ -7,4 +7,6 @@ filename = "articles_1000.json"
 gdown.download(url, filename, quiet=False)
 with open(filename, 'r') as f:
     data = json.load(f)
-dataset = Dataset.from_dict(data)
+dataset1000 = Dataset.from_dict(data)
+dataset300 = dataset1000.select(range(300))
+dataset500 = dataset1000.select(range(500))
