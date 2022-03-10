@@ -5,6 +5,7 @@ import numpy as np
 import math
 import struct
 import varints
+from tqdm import tqdm
 
 def get_residuals(msg: str, detokenized_message: str) -> dict:
     """
@@ -225,21 +226,23 @@ def batched_encode(compressor: TransformerCompressor, tokenizer: PreTrainedToken
         padded_input = np.concatenate((input_ids, padding * compressor.eos_token), axis=0)
         padded_attention = np.concatenate((attention, padding*0))
 
-        return {'length_bucket': math.ceil(len(input_ids)/slice_len)*slice_len, 'input_ids': padded_input, 'attention_mask': padded_attention, 'detokenized': detokenized}
+        return {'length_bucket': len(padded_input), 'input_ids': padded_input, 'attention_mask': padded_attention, 'detokenized': detokenized}
 
     tokenized_subset = dataset.map(
-        tokenize_and_categorize
+        tokenize_and_categorize, load_from_cache_file=False
     )
         
     for bucket in sorted(set(tokenized_subset['length_bucket'])):
         data_by_buckets[bucket] = tokenized_subset.filter(lambda elem: elem['length_bucket'] == bucket)
 
+    print(f'Buckets: {list(data_by_buckets.keys())}')
     for bucket in data_by_buckets.keys():
         same_len_subset = data_by_buckets[bucket]
         same_len_subset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
         num_rows = same_len_subset.num_rows
         trans_encodings = torch.zeros((num_rows, bucket), dtype=int)
-        for i in range(math.ceil(num_rows / batch_size)): 
+        print(f'Starting compression of bucket {bucket}')
+        for i in tqdm(range(math.ceil(num_rows / batch_size))): 
             row_start = i*batch_size
             row_stop = (i+1)*batch_size
             minibatch  = same_len_subset[row_start:row_stop]
